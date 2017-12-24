@@ -38,6 +38,10 @@ namespace MabiPale2
 			ChkFilterSendEnabled.Checked = Settings.Default.FilterSendEnabled;
 			TxtFilterRecv.Text = Regex.Replace(Settings.Default.FilterRecv.TrimStart(), "\r?\n\r?\n", Environment.NewLine);
 			TxtFilterSend.Text = Regex.Replace(Settings.Default.FilterSend.TrimStart(), "\r?\n\r?\n", Environment.NewLine);
+			if (Settings.Default.FilterExcludeModeActive)
+				RadFilterExcludeMode.Checked = true;
+			else
+				RadFilterIncludeMode.Checked = true;
 
 			try
 			{
@@ -50,10 +54,15 @@ namespace MabiPale2
 
 		private void FrmSettings_FormClosing(object sender, FormClosingEventArgs e)
 		{
+			// Do not save if cancelling or Close button is clicked.
+			if (DialogResult != DialogResult.OK)
+				return;
+
 			Settings.Default.FilterRecvEnabled = ChkFilterRecvEnabled.Checked;
 			Settings.Default.FilterSendEnabled = ChkFilterSendEnabled.Checked;
 			Settings.Default.FilterRecv = TxtFilterRecv.Text;
 			Settings.Default.FilterSend = TxtFilterSend.Text;
+			Settings.Default.FilterExcludeModeActive = RadFilterExcludeMode.Checked;
 			Settings.Default.Save();
 
 			try

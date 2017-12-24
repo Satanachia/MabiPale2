@@ -1,4 +1,5 @@
-﻿using Aura.Mabi.Const;
+﻿using Aura.Mabi;
+using Aura.Mabi.Const;
 using Aura.Mabi.Network;
 using Aura.Mabi.Structs;
 using MabiPale2.Plugins.PacketAnalyzer.Properties;
@@ -143,7 +144,7 @@ namespace MabiPale2.Plugins.PacketAnalyzer
 			sb.AppendLine("JoustPointPrice: {0}", optioninfo.JoustPointPrice);
 			sb.AppendLine("KnockCount: {0}", optioninfo.KnockCount);
 			sb.AppendLine("LinkedPocketId: {0}", optioninfo.LinkedPocketId);
-			sb.AppendLine("PonsPrice: {0}", optioninfo.PonsPrice);
+			sb.AppendLine("PonsPrice: {0}", optioninfo.PointPrice);
 			sb.AppendLine("Prefix: {0}", optioninfo.Prefix);
 			sb.AppendLine("Price: {0}", optioninfo.Price);
 			sb.AppendLine("Protection: {0}", optioninfo.Protection);
@@ -185,7 +186,6 @@ namespace MabiPale2.Plugins.PacketAnalyzer
 				var creatureEntityId = actionPacket.GetLong();
 				var type = (CombatActionType)actionPacket.GetByte();
 
-				// August 30, 2017 - changed length max to 85 instead of 79.
 				var attackeraction = len < 86 && type != 0; // Hot fix, TODO: Proper check of type.
 
 				sb.AppendLine(attackeraction ? "Attacker Action" : "Target Action");
@@ -195,7 +195,8 @@ namespace MabiPale2.Plugins.PacketAnalyzer
 				sb.AppendLine("Stun: " + actionPacket.GetShort());
 				sb.AppendLine("Skill Id: " + (SkillId)actionPacket.GetShort());
 				actionPacket.GetShort();
-				actionPacket.GetShort(); // NA 258 (disable for earlier packets)
+				if (actionPacket.Peek() == Shared.PacketElementType.Short)
+					actionPacket.GetShort(); // [200300, NA258 (2017-08-19)] ? 
 
 				// AttackerAction
 				if (attackeraction)
@@ -204,7 +205,7 @@ namespace MabiPale2.Plugins.PacketAnalyzer
 
 					var options = new List<uint>();
 					var topt = actionPacket.GetInt();
-					for (uint foo2 = 1; foo2 < 0x80000000; )
+					for (uint foo2 = 1; foo2 < 0x80000000;)
 					{
 						if ((topt & foo2) != 0)
 							options.Add(foo2);
@@ -220,6 +221,7 @@ namespace MabiPale2.Plugins.PacketAnalyzer
 
 					actionPacket.GetByte();
 					actionPacket.GetByte();
+					actionPacket.GetInt();
 					sb.AppendLine("X: " + actionPacket.GetInt());
 					sb.AppendLine("Y: " + actionPacket.GetInt());
 					if (actionPacket.NextIs(Shared.PacketElementType.Long))
@@ -239,13 +241,14 @@ namespace MabiPale2.Plugins.PacketAnalyzer
 							actionPacket.GetInt();
 							actionPacket.GetByte();
 							actionPacket.GetByte();
+							actionPacket.GetInt();
 							var x = actionPacket.GetInt();
 							var y = actionPacket.GetInt();
 						}
 
 						var options = new List<uint>();
 						var topt = actionPacket.GetInt();
-						for (uint foo2 = 1; foo2 < 0x80000000; )
+						for (uint foo2 = 1; foo2 < 0x80000000;)
 						{
 							if ((topt & foo2) != 0)
 								options.Add(foo2);
@@ -285,7 +288,7 @@ namespace MabiPale2.Plugins.PacketAnalyzer
 							sb.AppendLine("MultiHitUnk2: " + actionPacket.GetInt());
 						}
 
-						actionPacket.GetByte();
+						sb.AppendLine("EffectFlags: " + actionPacket.GetByte());
 						sb.AppendLine("Delay: " + actionPacket.GetInt());
 						sb.AppendLine("Attacker: " + actionPacket.GetLong().ToString("X16"));
 					}
@@ -311,7 +314,9 @@ namespace MabiPale2.Plugins.PacketAnalyzer
 				if (!tabs.ContainsKey(name))
 					tabs.Add(name, new List<ShopItem>());
 
-				palePacket.Packet.GetByte();
+				// [160200] ?
+				if (palePacket.Packet.NextIs(Shared.PacketElementType.Byte))
+					palePacket.Packet.GetByte();
 
 				var itemCount = palePacket.Packet.GetShort();
 				for (int j = 0; j < itemCount; ++j)
@@ -321,7 +326,9 @@ namespace MabiPale2.Plugins.PacketAnalyzer
 					var itemInfo = palePacket.Packet.GetObj<ItemInfo>();
 					var itemOptionInfo = palePacket.Packet.GetObj<ItemOptionInfo>();
 					var metaData1 = palePacket.Packet.GetString();
-					var metaData2 = palePacket.Packet.GetString();
+					var metaData2 = "";
+					if (palePacket.Packet.NextIs(Shared.PacketElementType.String))
+						metaData2 = palePacket.Packet.GetString();
 					palePacket.Packet.GetByte();
 					palePacket.Packet.GetLong();
 
@@ -357,10 +364,20 @@ namespace MabiPale2.Plugins.PacketAnalyzer
 
 					if (!string.IsNullOrWhiteSpace(item.MetaData1) && item.Info.Id != 70023)
 					{
-						if (item.MetaData1.Contains("FORMID:") || item.MetaData1.Contains("QSTTIP:"))
+						if (item.MetaData1.Contains("FORMID:"))
+						{
 							sb.AppendLine("Add(\"{0}\", {1}, \"{2}\", {3});", name, item.Info.Id, item.MetaData1, item.OptionInfo.Price);
+						}
+						else if (item.MetaData1.Contains("QSTTIP:"))
+						{
+							var start = "QSTTIP:s:N_".Length;
+							var questName = item.MetaData1.Substring(start, item.MetaData1.IndexOf("|") - start);
+							sb.AppendLine("//AddQuest(\"{0}\", InsertQuestId, {2}); // {3}", name, item.Info.Id, item.OptionInfo.Price, questName);
+						}
 						else
+						{
 							sb.AppendLine("Add(\"{0}\", {1}, \"{2}\");", name, item.Info.Id, item.MetaData1);
+						}
 					}
 					else if (item.Info.Amount <= 1 && !others)
 					{
@@ -415,19 +432,21 @@ namespace MabiPale2.Plugins.PacketAnalyzer
 
 				var msgs = msgRaw.Split(new string[] { "<p/>" }, StringSplitOptions.RemoveEmptyEntries);
 
-				var sb = new StringBuilder();
+				var sb1 = new StringBuilder("// NPC Script" + Environment.NewLine);
+				var sb2 = new StringBuilder("// Quest Script" + Environment.NewLine);
+				var sb3 = new StringBuilder();
 				foreach (var msg in msgs)
 				{
 					var cleanMsg = msg.Trim();
 					cleanMsg = Regex.Replace(cleanMsg, " *(<br/>) *", "$1");
 					cleanMsg = cleanMsg.Replace("\"", "\\\"");
 
-					// TODO: Expressions, buttons, etc. Or wait for the dialog parser?
-					sb.AppendLine("Msg(\"{0}\");", cleanMsg);
+					sb1.AppendLine("Msg(L(\"{0}\"));", cleanMsg);
+					sb2.AppendLine("npc.Msg(L(\"{0}\"));", cleanMsg);
 				}
 
 				TxtInfo.WordWrap = false;
-				TxtInfo.Text = sb.ToString();
+				TxtInfo.Text = sb1.ToString() + Environment.NewLine + sb2.ToString();
 			}
 			else
 				TxtInfo.Text = "Unknown function name '" + functionName + "'.";
@@ -477,6 +496,7 @@ namespace MabiPale2.Plugins.PacketAnalyzer
 			var conditionsD = palePacket.Packet.Peek() == Shared.PacketElementType.Long ? palePacket.Packet.GetLong() : 0;
 			var conditionsE = palePacket.Packet.Peek() == Shared.PacketElementType.Long ? palePacket.Packet.GetLong() : 0;
 			var conditionsF = palePacket.Packet.Peek() == Shared.PacketElementType.Long ? palePacket.Packet.GetLong() : 0;
+			var conditionsG = palePacket.Packet.Peek() == Shared.PacketElementType.Long ? palePacket.Packet.GetLong() : 0;
 
 			var sb = new StringBuilder();
 			sb.AppendLine("A: {0}", (ConditionsA)conditionsA);
@@ -485,6 +505,7 @@ namespace MabiPale2.Plugins.PacketAnalyzer
 			sb.AppendLine("D: {0}", (ConditionsD)conditionsD);
 			sb.AppendLine("E: {0}", (ConditionsE)conditionsE);
 			sb.AppendLine("F: {0}", (ConditionsF)conditionsF);
+			sb.AppendLine("G: {0}", (ConditionsG)conditionsG);
 
 			var extraCount = palePacket.Packet.GetInt();
 			if (extraCount != 0)
@@ -505,6 +526,7 @@ namespace MabiPale2.Plugins.PacketAnalyzer
 					case 3: sb.AppendLine("{0} - {1}", (ConditionsD)((ulong)1 << mod), str); break;
 					case 4: sb.AppendLine("{0} - {1}", (ConditionsE)((ulong)1 << mod), str); break;
 					case 5: sb.AppendLine("{0} - {1}", (ConditionsF)((ulong)1 << mod), str); break;
+					case 6: sb.AppendLine("{0} - {1}", (ConditionsG)((ulong)1 << mod), str); break;
 					default:
 						var ident = (char)('A' + div) + ":0x" + ((ulong)1 << mod).ToString("X16");
 						sb.AppendLine("{0} - {1}", ident, str);
