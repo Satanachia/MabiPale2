@@ -185,8 +185,8 @@ namespace MabiPale2.Plugins.PacketAnalyzer
 				var creatureEntityId = actionPacket.GetLong();
 				var type = (CombatActionType)actionPacket.GetByte();
 
-				// June 11, 2017 - changed length max to 82 instead of 79.
-				var attackeraction = len < 83 && type != 0; // Hot fix, TODO: Proper check of type.
+				// August 30, 2017 - changed length max to 85 instead of 79.
+				var attackeraction = len < 86 && type != 0; // Hot fix, TODO: Proper check of type.
 
 				sb.AppendLine(attackeraction ? "Attacker Action" : "Target Action");
 				sb.AppendLine("--------------------");
@@ -195,6 +195,7 @@ namespace MabiPale2.Plugins.PacketAnalyzer
 				sb.AppendLine("Stun: " + actionPacket.GetShort());
 				sb.AppendLine("Skill Id: " + (SkillId)actionPacket.GetShort());
 				actionPacket.GetShort();
+				actionPacket.GetShort(); // NA 258 (disable for earlier packets)
 
 				// AttackerAction
 				if (attackeraction)
@@ -232,7 +233,7 @@ namespace MabiPale2.Plugins.PacketAnalyzer
 					if (actionPacket.Peek() != Shared.PacketElementType.None)
 					{
 						// Target used Defense or Counter
-						if (type.HasFlag(CombatActionType.Defended) || type.HasFlag(CombatActionType.CounteredHit) || type.HasFlag((CombatActionType)0x73) || type.HasFlag((CombatActionType)0x13))
+						if (type.HasFlag(CombatActionType.Defended) || type.HasFlag(CombatActionType.CounteredHit) || type.HasFlag((CombatActionType)0x73) || type.HasFlag((CombatActionType)0x13) || type.HasFlag((CombatActionType)0x3))
 						{
 							var attackerEntityId = actionPacket.GetLong();
 							actionPacket.GetInt();
@@ -279,7 +280,7 @@ namespace MabiPale2.Plugins.PacketAnalyzer
 						if (actionPacket.NextIs(Shared.PacketElementType.Int))
 						{
 							sb.AppendLine("MultiHitDamageCount: " + actionPacket.GetInt());
-							sb.AppendLine("MultiHitdamageShowTime: " + actionPacket.GetInt());
+							sb.AppendLine("MultiHitDamageInterval: " + actionPacket.GetInt());
 							sb.AppendLine("MultiHitUnk1: " + actionPacket.GetInt());
 							sb.AppendLine("MultiHitUnk2: " + actionPacket.GetInt());
 						}
