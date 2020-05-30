@@ -127,11 +127,10 @@ namespace MabiPale2.Plugins.EntityLogger
 			creature.EyeColor = packet.GetByte();
 			creature.MouthType = packet.GetByte();
 			creature.State = packet.GetUInt();
-			creature.StateEx = packet.GetUInt();
 			// Public only
-			if (packet.NextIs(PacketElementType.Int))
+			if (type == 5)
 			{
-				creature.StateEx2 = packet.GetUInt();
+				creature.StateEx = packet.GetUInt();
 
 				// [180300, NA166 (18.09.2013)]
 				if (packet.NextIs(PacketElementType.Int))
@@ -153,6 +152,20 @@ namespace MabiPale2.Plugins.EntityLogger
 			creature.CombatPower = packet.GetFloat();
 			creature.StandStyle = packet.GetString();
 
+			// [200400, NA267 (2018-01-11)] OddEye support
+			if (packet.NextIs(PacketElementType.Byte))
+			{
+				packet.GetByte();
+				packet.GetByte();
+			}
+
+			// [210300, NA292 (2018-12-07)] ?
+			if (packet.NextIs(PacketElementType.Short))
+			{
+				packet.PutShort(0);
+				packet.PutInt(0);
+			}
+
 			creature.LifeRaw = packet.GetFloat();
 			creature.LifeMaxBase = packet.GetFloat();
 			creature.LifeMaxMod = packet.GetFloat();
@@ -161,6 +174,13 @@ namespace MabiPale2.Plugins.EntityLogger
 			// [180800, NA196 (14.10.2014)] ?
 			if (packet.NextIs(PacketElementType.Short))
 				packet.GetShort(); // ?
+
+			// [220100, NA293 (2019-01-12)] ? (same as in private?)
+			if (packet.NextIs(PacketElementType.Float))
+			{
+				packet.GetFloat();
+				packet.GetFloat();
+			}
 
 			var regenCount = packet.GetInt();
 			for (int i = 0; i < regenCount; ++i)
@@ -177,7 +197,11 @@ namespace MabiPale2.Plugins.EntityLogger
 
 			var unkCount = packet.GetInt();
 			for (int i = 0; i < unkCount; ++i)
+			{
 				packet.Skip(6);
+				if (packet.NextIs(PacketElementType.Byte))
+					packet.GetByte(); // [200300, NA262 (2017-10-20)] ?
+			}
 
 			creature.Title = packet.GetUShort();
 			creature.TitleApplied = packet.GetDate();

@@ -2,10 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Windows.Forms;
 
 namespace MabiPale2.Plugins
@@ -65,7 +61,7 @@ namespace MabiPale2.Plugins
 		/// </summary>
 		/// <param name="text">Text used for item</param>
 		/// <param name="onClick">Event handler for when the item is clicked</param>
-		void AddToMenu(string text, EventHandler onClick);
+		MenuItem AddToMenu(string text, EventHandler onClick);
 
 		/// <summary>
 		/// Adds item to Plugin menu.
@@ -73,7 +69,22 @@ namespace MabiPale2.Plugins
 		/// <param name="index">Index at which to insert the item</param>
 		/// <param name="text">Text used for item</param>
 		/// <param name="onClick">Event handler for when the item is clicked</param>
-		void AddToMenu(int index, string text, EventHandler onClick);
+		MenuItem AddToMenu(int index, string text, EventHandler onClick);
+
+		/// <summary>
+		/// Adds item to context menu of packet list.
+		/// </summary>
+		/// <param name="text">Text used for item</param>
+		/// <param name="onClick">Event handler for when the item is clicked</param>
+		MenuItem AddToListContextMenu(string text, EventHandler onClick);
+
+		/// <summary>
+		/// Adds item to context menu of packet list.
+		/// </summary>
+		/// <param name="index">Index at which to insert the item</param>
+		/// <param name="text">Text used for item</param>
+		/// <param name="onClick">Event handler for when the item is clicked</param>
+		MenuItem AddToListContextMenu(int index, string text, EventHandler onClick);
 
 		/// <summary>
 		/// Opens form centered on the main window.
@@ -92,5 +103,17 @@ namespace MabiPale2.Plugins
 		/// </summary>
 		/// <returns></returns>
 		PalePacket GetSelectedPacket();
+
+		/// <summary>
+		/// Sends packet to packet provider to be sent.
+		/// </summary>
+		/// <param name="packet"></param>
+		void SendPacket(Packet packet);
+
+		/// <summary>
+		/// Sends packet to packet provider to be received.
+		/// </summary>
+		/// <param name="packet"></param>
+		void RecvPacket(Packet packet);
 	}
 }

@@ -7,7 +7,6 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Windows.Forms;
 
 namespace MabiPale2.Plugins
@@ -121,9 +120,9 @@ namespace MabiPale2.Plugins
 		/// </summary>
 		/// <param name="text">Text used for item</param>
 		/// <param name="onClick">Event handler for when the item is clicked</param>
-		public void AddToMenu(string text, EventHandler onClick)
+		public MenuItem AddToMenu(string text, EventHandler onClick)
 		{
-			AddToMenu(frmMain.MenuPlugins.MenuItems.Count, text, onClick);
+			return AddToMenu(frmMain.MenuPlugins.MenuItems.Count, text, onClick);
 		}
 
 		/// <summary>
@@ -132,15 +131,47 @@ namespace MabiPale2.Plugins
 		/// <param name="index">Index at which to insert the item</param>
 		/// <param name="text">Text used for item</param>
 		/// <param name="onClick">Event handler for when the item is clicked</param>
-		public void AddToMenu(int index, string text, EventHandler onClick)
+		public MenuItem AddToMenu(int index, string text, EventHandler onClick)
 		{
 			index = Math.Min(frmMain.MenuPlugins.MenuItems.Count, Math.Max(0, index));
 
 			var mi = new MenuItem();
 			mi.Text = text;
-			mi.Click += onClick;
+			if (onClick != null)
+				mi.Click += onClick;
 
 			frmMain.MenuPlugins.MenuItems.Add(index, mi);
+
+			return mi;
+		}
+
+		/// <summary>
+		/// Adds item to context menu of packet list.
+		/// </summary>
+		/// <param name="text">Text used for item</param>
+		/// <param name="onClick">Event handler for when the item is clicked</param>
+		public MenuItem AddToListContextMenu(string text, EventHandler onClick)
+		{
+			return AddToListContextMenu(frmMain.CtxPacketList.MenuItems.Count, text, onClick);
+		}
+
+		/// <summary>
+		/// Adds item to context menu of packet list.
+		/// </summary>
+		/// <param name="text">Text used for item</param>
+		/// <param name="onClick">Event handler for when the item is clicked</param>
+		public MenuItem AddToListContextMenu(int index, string text, EventHandler onClick)
+		{
+			index = Math.Min(frmMain.CtxPacketList.MenuItems.Count, Math.Max(0, index));
+
+			var mi = new MenuItem();
+			mi.Text = text;
+			if (onClick != null)
+				mi.Click += onClick;
+
+			frmMain.CtxPacketList.MenuItems.Add(index, mi);
+
+			return mi;
 		}
 
 		/// <summary>
@@ -286,6 +317,9 @@ namespace MabiPale2.Plugins
 			}
 		}
 
+		/// <summary>
+		/// Raises clear event.
+		/// </summary>
 		internal void OnClear()
 		{
 			var ev = Clear;
@@ -300,6 +334,26 @@ namespace MabiPale2.Plugins
 			{
 				Trace.TraceError(ex.ToString());
 			}
+		}
+
+		/// <summary>
+		/// Sends packet to packet provider for it to be sent.
+		/// </summary>
+		/// <param name="packet"></param>
+		public void SendPacket(Packet packet)
+		{
+			var data = packet.Build();
+			frmMain.SendAlissa(Sign.Send, data);
+		}
+
+		/// <summary>
+		/// Sends packet to packet provider for it to be received.
+		/// </summary>
+		/// <param name="packet"></param>
+		public void RecvPacket(Packet packet)
+		{
+			var data = packet.Build();
+			frmMain.SendAlissa(Sign.Recv, data);
 		}
 	}
 }
